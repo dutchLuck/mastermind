@@ -84,9 +84,8 @@ long  convertOptionStringToLong( long  defltValue, char *  strng )  {
 	/* Convert string specified to signed long, if possible */
     result = strtol( strng, &endPtrStore, 10 );		/* base 10 conversion of strng to long integer */
 	/* Check on strtol output - did any characters get converted? */
-    if( endPtrStore == strng )
-    	result = defltValue;
-	return( result );
+    if( endPtrStore == strng )  result = defltValue;
+    return( result );
 }
 
 
