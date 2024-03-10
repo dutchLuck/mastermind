@@ -1,0 +1,35 @@
+#! /bin/bash
+#
+# C O N F I G U R E
+#
+# configure last edited on Thu Dec 28 19:57:07 2023 
+#
+NAME=mastermind
+#
+OP_FILE_NAME=Makefile
+COMPILER=cc
+OPTIONS=-Wall
+TRGT=$NAME
+SRC=$NAME.c
+#
+# echo $OSTYPE
+#
+if [[ "$OSTYPE" == "cygwin" ]] ; then
+  TRGT=$NAME.exe
+elif [[ "$OSTYPE" == "msys" ]] ; then
+  TRGT=$NAME.exe
+  COMPILER=gcc
+fi
+#
+echo "$TRGT: $SRC" > $OP_FILE_NAME
+echo -e "\t$COMPILER $OPTIONS -o $TRGT $SRC" >> $OP_FILE_NAME
+echo "" >> $OP_FILE_NAME
+#
+echo "check: $TRGT" >> $OP_FILE_NAME
+echo -e "\t./mm.exp" >> $OP_FILE_NAME
+echo "" >> $OP_FILE_NAME
+#
+echo "clean:" >> $OP_FILE_NAME
+echo -e "\trm -f $TRGT $NAME.o" >> $OP_FILE_NAME
+echo "" >> $OP_FILE_NAME
+#
