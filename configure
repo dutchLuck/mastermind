@@ -26,7 +26,7 @@ echo -e "\t$COMPILER $OPTIONS -o $TRGT $SRC" >> $OP_FILE_NAME
 echo "" >> $OP_FILE_NAME
 #
 echo "check: $TRGT" >> $OP_FILE_NAME
-echo -e "\t./mm.exp" >> $OP_FILE_NAME
+echo -e "\t/usr/bin/expect -f mm.exp" >> $OP_FILE_NAME
 echo "" >> $OP_FILE_NAME
 #
 echo "clean:" >> $OP_FILE_NAME
