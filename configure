@@ -8,7 +8,7 @@ NAME=mastermind
 #
 OP_FILE_NAME=Makefile
 COMPILER=cc
-OPTIONS=-Wall
+OPTIONS="-Wall -pedantic"
 TRGT=$NAME
 SRC=$NAME.c
 #
