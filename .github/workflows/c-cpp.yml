@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: install dependencies
+      run: sudo apt-get update -qq; sudo apt-get install expect
     - name: configure
       run: ./configure
     - name: make
