@@ -42,9 +42,6 @@ int  numberOfCodes = DEFAULT_NUMBER_OF_CODES;
 int  codeWidth = MINIMUM_CODE_LENGTH;
 int  totalNumberOfGuesses = MINIMUM_NUMBER_OF_GUESSES;
 int  codeLettersCanBeRepeated = TRUE;
-char  secretCode[ MAXIMUM_CODE_LENGTH + 1 ];        /* Array of code letters user has to discover + '\0' */
-char  userCodeGuess[MAXIMUM_NUMBER_OF_GUESSES][ MAXIMUM_CODE_LENGTH + 1 ];      /* Array of code letters in current guess + '\0' */
-char  score[MAXIMUM_NUMBER_OF_GUESSES][ MAXIMUM_CODE_LENGTH + 1 ];         /* Array of correct, partially correct and incorrect letters in guess + '\0' */
 char  legalCodeLetters[ MAXIMUM_NUMBER_OF_CODES + 1 ];      /* Array of allowed code letters in current guess + '\0' */
 char *  line = NULL;      /* For use by getline() */
 size_t linecap = 0;
@@ -144,7 +141,7 @@ void  changeGameSettings( void )  {
 }
 
 
-void  generateSecretCodeAllowingRepeatedSymbols( void )  {
+void  generateSecretCodeAllowingRepeatedSymbols( char  secretCode[] )  {
     int  index;
     long  prDivisor;
 
@@ -176,7 +173,7 @@ void  generateSecretCodeSansRepeatedSymbols( char *  secretCodePtr )  {
 }
 
 
-void  generateSecretCode( void )  {
+void  generateSecretCode( char *  secretCode )  {
     unsigned  seed;
     struct timespec  now;
 
@@ -185,18 +182,18 @@ void  generateSecretCode( void )  {
     else  seed = ( unsigned )( now.tv_sec ^ now.tv_nsec );  /* Exclusive or */
     srandom( seed );
     if( codeLettersCanBeRepeated || ( codeWidth > numberOfCodes ))
-        generateSecretCodeAllowingRepeatedSymbols();
+        generateSecretCodeAllowingRepeatedSymbols( secretCode );
     else  generateSecretCodeSansRepeatedSymbols( secretCode );
     secretCode[ codeWidth ] = '\0';     /* terminate code so it can be used as a string */
 }
 
 
-void  getGuessForRound( int  roundNumber )  {
+void  getGuessForRound( int  roundNumber, char *  userCodeGuess )  {
     char *  chrPtr;
     char *  chrBfrPtr;
 
     do  {
-        chrBfrPtr = userCodeGuess[ roundNumber ];
+        chrBfrPtr = userCodeGuess;
         *chrBfrPtr = '\0';  /* ensure that if getline() fails userCodeGuess is a terminated string */
         printf( "Round number %d: Please enter %d letters from the set \"%s\": ",
             roundNumber, codeWidth, legalCodeLetters );
@@ -208,13 +205,7 @@ void  getGuessForRound( int  roundNumber )  {
             }
             *chrBfrPtr = '\0';  /* ensure userCodeGuess is a terminated string so strlen() works */
         }
-    } while( strlen( userCodeGuess[ roundNumber ] ) < codeWidth );
-    userCodeGuess[ roundNumber ][ codeWidth ] = '\0';     /* truncate user code at proper length in case it was longer than required */
-}
-
-
-int  checkRoundForWin( int  round )  {
-    return( strcmp( secretCode, userCodeGuess[ round ] ) == 0 );
+    } while( strlen( userCodeGuess ) < codeWidth );     /* loop if there is not input from the player */
 }
 
 
@@ -246,19 +237,19 @@ int  scoreMisplacedLetters( int scoreIndex, char *  score, char *  uCode, char *
 }
 
 
-void  determineScore( int  round )  {
+void  determineScore( int  round, char *  secretCode, char *  userCodeGuess, char *  score )  {
     int  index, correctGuesses;
     char  tempUserCodeGuess[ MAXIMUM_CODE_LENGTH + 1 ];     /* Array of code letters in current guess + '\0' */
     char  tempSecretCode[ MAXIMUM_CODE_LENGTH + 1 ];        /* Array of code letters in current guess + '\0' */
 
     /* Set up score string as no matches */
-    for( index = 0; index < codeWidth; index++ )  score[ round ][ index ] = '-';
-    score[ round ][ codeWidth ] = '\0';
+    for( index = 0; index < codeWidth; index++ )  score[ index ] = '-';
+    score[ codeWidth ] = '\0';
     /* Copy userCodeGuess and secretCode so that destructive test doesn't matter */
-    strncpy( tempUserCodeGuess, userCodeGuess[ round ], sizeof( tempUserCodeGuess ));
+    strncpy( tempUserCodeGuess, userCodeGuess, sizeof( tempUserCodeGuess ));
     strncpy( tempSecretCode, secretCode, sizeof( tempSecretCode ));
-    if(( correctGuesses = scoreAnyCorrectLetters( score[ round ], tempUserCodeGuess, tempSecretCode )) < codeWidth )
-        scoreMisplacedLetters( correctGuesses, score[ round ], tempUserCodeGuess, tempSecretCode );
+    if(( correctGuesses = scoreAnyCorrectLetters( score, tempUserCodeGuess, tempSecretCode )) < codeWidth )
+        scoreMisplacedLetters( correctGuesses, score, tempUserCodeGuess, tempSecretCode );
 }
 
 
@@ -266,17 +257,21 @@ int  playGame( void )  {
     int  cnt;
     int  result;
     int  roundCnt;
+    char  secretCode[ MAXIMUM_CODE_LENGTH + 1 ];        /* Array of code letters player has to discover + '\0' */
+    char  userCodeGuess[MAXIMUM_NUMBER_OF_GUESSES][ MAXIMUM_CODE_LENGTH + 1 ];      /* Array of code letters in current guess + '\0' */
+    char  score[MAXIMUM_NUMBER_OF_GUESSES][ MAXIMUM_CODE_LENGTH + 1 ];         /* Array of correct, partially correct and incorrect letters in guess + '\0' */
 
-    generateSecretCode();
+    generateSecretCode( secretCode );
     printf( "\n" );
     for( roundCnt = 1; roundCnt <= totalNumberOfGuesses; roundCnt++ )  {
-        getGuessForRound( roundCnt );
-        if(( result = checkRoundForWin( roundCnt )))  {
+        getGuessForRound( roundCnt, userCodeGuess[ roundCnt ] );
+        /* Check for a win */
+        if(( result = ( strcmp( secretCode, userCodeGuess[ roundCnt ] ) == 0 )))  {    /* A win if strings are equal */
             printf( "Congratulations, you succeeded in specifying \"%s\", which was the secret code!\n", secretCode );
             break;
         }
         else  {
-            determineScore( roundCnt );
+            determineScore( roundCnt, secretCode, userCodeGuess[ roundCnt ], score[ roundCnt ] );
             for( cnt = 1; cnt <= roundCnt; cnt++ )
                 printf( "%2d.   %s   |   %s\n", cnt, userCodeGuess[ cnt ], score[ cnt ] );
             if( roundCnt >= totalNumberOfGuesses )  {
