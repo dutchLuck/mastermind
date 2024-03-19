@@ -46,26 +46,30 @@ int  numberOfCodeSymbols = DEFAULT_NUMBER_OF_CODE_SYMBOLS;
 int  codeWidth = MINIMUM_CODE_LENGTH;
 int  totalNumberOfGuesses = MINIMUM_NUMBER_OF_GUESSES;
 int  codeLettersCanBeRepeated = TRUE;
-char  legalCodeLetters[ MAXIMUM_NUMBER_OF_CODE_SYMBOLS + 1 ];      /* Array of allowed code letters in current guess + '\0' */
-char *  line = NULL;      /* For use by getline() */
+char  validCodeLetters[ MAXIMUM_NUMBER_OF_CODE_SYMBOLS + 1 ];      /* Array of allowed code letters in current guess + '\0' */
+char *  playerEnteredLine= NULL;      /* For use by getline() */
 size_t linecap = 0;
+char  resultSeparatorStrng[] = "  |  ";     /* separates guess from score when result for round is printed */
 
 
 int  getYesOrNoResponseFromUser( char *  questionString, int  defaultResult )  {
     int  result = defaultResult;    /* default to No response */
-    char *  chrPtr;
+    char *  enteredLineChrPtr;
     ssize_t linelen;
     size_t  startIndexOfFirstNonSpaceChar;
 
     do  {
         printf( "%s: yes or no (defaults to %s) : ", questionString, defaultResult ? "yes" : "no" );
-        if(( linelen = getline(&line, &linecap, stdin )) > 0)  {
-            startIndexOfFirstNonSpaceChar = strspn( line, " \t" );  /* get index of first non-space character */
-            chrPtr = line + startIndexOfFirstNonSpaceChar;
-            if( *chrPtr == '\0' )  linelen = 0;     /* line has no response - shouldn't happen */
-            else if( *chrPtr == '\n' )  result = defaultResult;     /* player only typed return, no letters */
-            else if( tolower( *chrPtr ) == 'y' )  result = TRUE;    /* starts with a 'y' so assume it is yes */
-            else if( tolower( *chrPtr ) == 'n' )  result = FALSE;   /* starts with a 'n' so assume it is no */
+        if(( linelen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )  {
+            return( FALSE );    /* unrecoverable condition - but finish up nicely as well as quickly */
+        }
+        else  {
+            startIndexOfFirstNonSpaceChar = strspn( playerEnteredLine, " \t" );  /* get index of first non-space character */
+            enteredLineChrPtr = playerEnteredLine + startIndexOfFirstNonSpaceChar;
+            if( *enteredLineChrPtr == '\0' )  linelen = 0;     /* playerEnteredLine contains no response - shouldn't happen */
+            else if( *enteredLineChrPtr == '\n' )  result = defaultResult;     /* player only typed return, no letters */
+            else if( tolower( *enteredLineChrPtr ) == 'y' )  result = TRUE;    /* starts with a 'y' so assume it is yes */
+            else if( tolower( *enteredLineChrPtr ) == 'n' )  result = FALSE;   /* starts with a 'n' so assume it is no */
             else  result = defaultResult;
         }
     } while( linelen <= 0 );
@@ -93,19 +97,22 @@ long  convertOptionStringToLong( long  defltValue, char *  strng )  {
 int  getNumberResponseFromUser( char *  questionString, int  defaultResult, int loLimit, int  hiLimit )  {
     int  result = defaultResult;    /* default to No response */
     long  numberResponse;
-    char *  chrPtr;
+    char *  enteredLineChrPtr;
     ssize_t linelen;
     size_t  startIndexOfFirstNonSpaceChar;
 
     do  {
         printf( "%s within range from %d to %d (defaults to %d)? : ", questionString, loLimit, hiLimit, defaultResult );
-        if(( linelen = getline(&line, &linecap, stdin )) > 0)  {
-            startIndexOfFirstNonSpaceChar = strspn( line, " \t" );
-            chrPtr = line + startIndexOfFirstNonSpaceChar;
-            if( *chrPtr == '\0' )  linelen = 0; /* line has no response */
-            else if( *chrPtr == '\n' )  result = defaultResult;
+        if(( linelen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )  {
+            return( defaultResult );    /* unrecoverable condition - but finish up nicely as well as quickly */
+        }
+        else  {
+            startIndexOfFirstNonSpaceChar = strspn( playerEnteredLine, " \t" );
+            enteredLineChrPtr = playerEnteredLine + startIndexOfFirstNonSpaceChar;
+            if( *enteredLineChrPtr == '\0' )  linelen = 0; /* playerEnteredLinehas no response */
+            else if( *enteredLineChrPtr == '\n' )  result = defaultResult;
             else {
-                numberResponse = convertOptionStringToLong( (long) defaultResult, chrPtr );
+                numberResponse = convertOptionStringToLong( (long) defaultResult, enteredLineChrPtr );
                 numberResponse = limitLongValueToEqualOrWithinRange( numberResponse, loLimit, hiLimit );
                 result = ( int ) numberResponse;
             }
@@ -117,7 +124,7 @@ int  getNumberResponseFromUser( char *  questionString, int  defaultResult, int 
 
 void  printCurrentGameSettings( void )  {
     printf( "\nThe game settings are; -\n" );
-    printf( "%d code letters in use & they are: %s\n", numberOfCodeSymbols, legalCodeLetters );
+    printf( "%d code letters in use & they are: %s\n", numberOfCodeSymbols, validCodeLetters );
     printf( "The secret code is %d letters long\n", codeWidth );
     printf( "%d attempts to guess the secret code are avaiable\n", totalNumberOfGuesses );
     printf( "Code letters ar%s repeated in the code\n", codeLettersCanBeRepeated ? "e" : "e not" );
@@ -128,8 +135,8 @@ void  setupValidCodeLetters( int  nmbrOfCodes )  {
     int  cnt;
 
     for( cnt = 0; cnt < nmbrOfCodes; cnt++ )
-        legalCodeLetters[ cnt ] = 'A' + cnt;
-    legalCodeLetters[ nmbrOfCodes ] = '\0';   /* terminate it as a string */
+        validCodeLetters[ cnt ] = 'A' + cnt;
+    validCodeLetters[ nmbrOfCodes ] = '\0';   /* terminate it as a string */
 }
 
 
@@ -138,7 +145,7 @@ void  changeGameSettings( void )  {
         DEFAULT_NUMBER_OF_CODE_SYMBOLS, MINIMUM_NUMBER_OF_CODE_SYMBOLS, MAXIMUM_NUMBER_OF_CODE_SYMBOLS );
     printf( "%d code letters in use & they are: ", numberOfCodeSymbols );
     setupValidCodeLetters( numberOfCodeSymbols );
-    printf( "%s\n", legalCodeLetters );
+    printf( "%s\n", validCodeLetters );
     codeWidth = getNumberResponseFromUser( "How many letters to guess",
         MINIMUM_CODE_LENGTH, MINIMUM_CODE_LENGTH, MAXIMUM_CODE_LENGTH );
     printf( "The code will be %d letters long\n", codeWidth );
@@ -154,9 +161,9 @@ void  generateSecretCodeAllowingRepeatedSymbols( char  secretCode[] )  {
     int  index;
     long  prDivisor;
 
-    prDivisor = ( LARGEST_PRNUMBER / ( long ) numberOfCodeSymbols );
+    prDivisor = ( LARGEST_PRNUMBER / ( long ) numberOfCodeSymbols );    /* Calc Pseudo Random divisor for later use */
     for( index = 0; index < codeWidth; index++ )
-        secretCode[ index ] = 'A' + ( int )( random() / ( long ) prDivisor );
+        secretCode[ index ] = 'A' + ( int )( random() / prDivisor );
 }
 
 
@@ -168,7 +175,7 @@ void  generateSecretCodeSansRepeatedSymbols( char *  secretCodePtr )  {
     char  availableCodes[ MAXIMUM_NUMBER_OF_CODE_SYMBOLS + 1 ];
 
     /* Make a copy of the available letters */
-    strncpy( availableCodes, legalCodeLetters, sizeof( availableCodes ));
+    strncpy( availableCodes, validCodeLetters, sizeof( availableCodes ));
     /* Work through the available letters randomly selecting, copying and then removing each choice */
     for( index = 0, lettersLeft = numberOfCodeSymbols; index < codeWidth; index++ )  {
         if( lettersLeft > 1 )  {
@@ -176,7 +183,7 @@ void  generateSecretCodeSansRepeatedSymbols( char *  secretCodePtr )  {
             avlPtr = availableCodes + ( int )( random() / prDivisor );      /* point at the selected letter */
         }
         else  avlPtr = availableCodes;      /* Only 1 letter left */
-        *secretCodePtr++ = *avlPtr;         /* write available letter into secretCode string */
+        *secretCodePtr++ = *avlPtr;         /* write available letter into secret code string */
         for( ; *avlPtr != '\0'; avlPtr++ )  *avlPtr = *( avlPtr + 1 );   /* compact available letters */
     }
 }
@@ -197,53 +204,58 @@ void  generateSecretCode( char *  secretCode )  {
 }
 
 
-void  getGuessForRound( int  roundNumber, char *  userCodeGuess )  {
-    char *  chrPtr;
-    char *  chrBfrPtr;
+void  getGuessForRound( int  roundNumber, char *  playerCodeGuess )  {
+    char *  enteredLineChrPtr;
+    char *  playerCodeGssChrPtr;
 
     do  {
-        chrBfrPtr = userCodeGuess;
-        *chrBfrPtr = '\0';  /* ensure that if getline() fails userCodeGuess is a terminated string */
+        playerCodeGssChrPtr = playerCodeGuess;
+        *playerCodeGssChrPtr = '\0';  /* ensure that if getline() fails playerCodeGuess is a terminated string */
         printf( "Round number %d: Please enter %d letters from the set \"%s\": ",
-            roundNumber, codeWidth, legalCodeLetters );
-        if( getline(&line, &linecap, stdin ) > 0 )  {
-            chrPtr = line + strspn( line, " \t" );  /* point at first non-white-space */
-            for( ; *chrPtr != '\0'; )  {   /* Loop to convert to upper case and copy if in the legal set of char */
-                if( strchr( legalCodeLetters, toupper( *chrPtr )) != NULL )  *chrBfrPtr++ = toupper( *chrPtr++ );
-                else  chrPtr++;     /* ignore anything not in the set of legal code letters */
-            }
-            *chrBfrPtr = '\0';  /* ensure userCodeGuess is a terminated string so strlen() works */
+            roundNumber, codeWidth, validCodeLetters );
+        if( getline( &playerEnteredLine, &linecap, stdin ) == -1 )  {
+            strcpy( playerCodeGuess, "AAAAAAAAAA" );    /* unrecoverable condition - but finish up nicely as well as quickly */
+            printf( "\n" );
         }
-    } while( strlen( userCodeGuess ) < codeWidth );     /* loop if there is not input from the player */
-    userCodeGuess[ codeWidth ] = '\0';     /* Ensure expected width in case player has supplied too many letters */
+        else  {
+            enteredLineChrPtr = playerEnteredLine + strspn( playerEnteredLine, " \t" );  /* point at first non-white-space */
+            for( ; *enteredLineChrPtr != '\0'; )  {   /* Loop to convert to upper case and copy if in the legal set of char */
+                if( strchr( validCodeLetters, toupper( *enteredLineChrPtr )) != NULL )
+                    *playerCodeGssChrPtr++ = toupper( *enteredLineChrPtr++ );
+                else  enteredLineChrPtr++;     /* step over and ignore anything not in the set of legal code letters */
+            }
+            *playerCodeGssChrPtr = '\0';  /* ensure playerCodeGuess is a terminated string so strlen() works */
+        }
+    } while( strlen( playerCodeGuess ) < codeWidth );     /* loop if there is not input from the player */
+    playerCodeGuess[ codeWidth ] = '\0';     /* Ensure code guess is expected width in case player has entered too many letters */
 }
 
 
-int  scoreAnyCorrectLetters( char *  score, char *  uCode, char *  sCode )  {
-    int  index, cnt;
+int  scoreAnyCorrectLetters( char *  score, char *  playrCode, char *  secrtCode )  {
+    int  index, scoreIndex;
 
-    for( index = 0, cnt = 0; index < codeWidth; index++ )  {
-        if( uCode[ index ] == sCode[ index ] )  {
-            score[ cnt++ ] = CORRECT_MARKER;
-            uCode[ index ] = ALREADY_SCORED;   /* make sure this user guess symbol is now ignored */
-            sCode[ index ] = ALREADY_SCORED;   /* make sure this matched secret symbol is now ignored */
+    for( index = 0, scoreIndex = 0; index < codeWidth; index++ )  {
+        if( playrCode[ index ] == secrtCode[ index ] )  {
+            score[ scoreIndex++ ] = CORRECT_MARKER;
+            playrCode[ index ] = ALREADY_SCORED;   /* make sure this user guess symbol is now ignored */
+            secrtCode[ index ] = ALREADY_SCORED;   /* make sure this matched secret symbol is now ignored */
         }
     }
-    return( cnt );
+    return( scoreIndex );
 }
 
 
 int  scoreMisplacedLetters( int scoreIndex, char *  score, char *  uCode, char *  sCode )  {
-    int  index, cnt;
-    char *  chrPtr;
+    int  index;
+    char *  enteredLineChrPtr;
 
-    for( index = 0, cnt = scoreIndex; index < codeWidth; index++ )  {
-        if(( sCode[ index ] != ALREADY_SCORED ) && ( chrPtr = strchr( uCode, sCode[ index ])) != NULL )  {
-            score[ cnt++ ] = WRONG_POSITION_MARKER;
-            *chrPtr = ALREADY_SCORED;   /* make sure this guess cannot be scored again */
+    for( index = 0; index < codeWidth; index++ )  {
+        if(( sCode[ index ] != ALREADY_SCORED ) && ( enteredLineChrPtr = strchr( uCode, sCode[ index ])) != NULL )  {
+            score[ scoreIndex++ ] = WRONG_POSITION_MARKER;
+            *enteredLineChrPtr = ALREADY_SCORED;   /* make sure this guess cannot be scored again */
         }
     }
-    return( cnt );
+    return( scoreIndex );
 }
 
 
@@ -259,13 +271,14 @@ void  determineScore( int  round, char *  secretCode, char *  userCodeGuess, cha
     strncpy( tempUserCodeGuess, userCodeGuess, sizeof( tempUserCodeGuess ));
     strncpy( tempSecretCode, secretCode, sizeof( tempSecretCode ));
     if(( correctGuesses = scoreAnyCorrectLetters( score, tempUserCodeGuess, tempSecretCode )) < codeWidth )
-        scoreMisplacedLetters( correctGuesses, score, tempUserCodeGuess, tempSecretCode );
+        if(( index = scoreMisplacedLetters( correctGuesses, score, tempUserCodeGuess, tempSecretCode )) > codeWidth )
+            printf( "Error: scoring produced a result that is too long (%d characters)\n", index );
 }
 
 
 int  playGame( void )  {
     int  cnt;
-    int  result;
+    int  result = FALSE;
     int  roundCnt;
     char  secretCode[ MAXIMUM_CODE_LENGTH + 1 ];        /* Array of code letters player has to discover + '\0' */
     char  userCodeGuess[ MAXIMUM_NUMBER_OF_GUESSES ][ MAXIMUM_CODE_LENGTH + 1 ];    /* Array of code letters in current guess + '\0' */
@@ -283,7 +296,7 @@ int  playGame( void )  {
         else  {
             determineScore( roundCnt, secretCode, userCodeGuess[ roundCnt ], score[ roundCnt ] );
             for( cnt = 1; cnt <= roundCnt; cnt++ )
-                printf( "%2d.   %s   |   %s\n", cnt, userCodeGuess[ cnt ], score[ cnt ] );
+                printf( "%2d.  %s%s%s\n", cnt, userCodeGuess[ cnt ], resultSeparatorStrng, score[ cnt ] );
             if( roundCnt >= totalNumberOfGuesses )  {
                 printf( "Commiserations, you were not successful this time.\n");
                 printf( "The secret code was \"%s\"\n", secretCode );

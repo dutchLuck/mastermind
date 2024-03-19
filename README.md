@@ -47,3 +47,7 @@ Thank you for playing Mastermind
 You played 1 game and were succesful on 1 occasion.
 %
 ```
+
+Further Reading; -
+Summary of history: wikipedia "Mastermind Board Game"
+"The Computer as Master Mind" by Donald Knuth: http://www.cs.uni.edu/~wallingf/teaching/cs3530/resources/knuth-mastermind.pdf
