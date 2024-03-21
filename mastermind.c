@@ -21,11 +21,12 @@
  *  one code letter incorrect.
  */
 
-#include <stdio.h>  /* printf() getline() */
+#include <stdio.h>  /* printf() getline() feof() */
 #include <string.h> /* strspn() strlen() strchr() strcmp() strncpy() */
 #include <ctype.h>  /* tolower() */
-#include <stdlib.h> /* random() srandom() strtol() */
+#include <stdlib.h> /* random() srandom() strtol() atexit() exit() */
 #include <time.h>   /* clock_gettime() */
+#include <signal.h>		/* signal() */
 
 #define FALSE ((int) 0)
 #define TRUE (! FALSE)
@@ -42,6 +43,8 @@
 #define MAXIMUM_NUMBER_OF_GUESSES 20
 #define LARGEST_PRNUMBER  ((long) 2147483647)    /* (2^31)-1 is max output by random() */
 
+int  playerSuccesses = 0;     /* games won by the player */
+int  totalGamesPlayed = 0;
 int  numberOfCodeSymbols = DEFAULT_NUMBER_OF_CODE_SYMBOLS;
 int  codeWidth = MINIMUM_CODE_LENGTH;
 int  totalNumberOfGuesses = MINIMUM_NUMBER_OF_GUESSES;
@@ -52,7 +55,7 @@ size_t linecap = 0;
 char  resultSeparatorStrng[] = "  |  ";     /* separates guess from score when result for round is printed */
 
 
-int  getYesOrNoResponseFromUser( char *  questionString, int  defaultResult )  {
+int  getYesOrNoResponseFromPlayer( char *  questionString, int  defaultResult )  {
     int  result = defaultResult;    /* default to No response */
     char *  enteredLineChrPtr;
     ssize_t linelen;
@@ -61,7 +64,7 @@ int  getYesOrNoResponseFromUser( char *  questionString, int  defaultResult )  {
     do  {
         printf( "%s: yes or no (defaults to %s) : ", questionString, defaultResult ? "yes" : "no" );
         if(( linelen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )  {
-            return( FALSE );    /* unrecoverable condition - but finish up nicely as well as quickly */
+            exit( EXIT_FAILURE );    /* unrecoverable condition - but finish up nicely as well as quickly */
         }
         else  {
             startIndexOfFirstNonSpaceChar = strspn( playerEnteredLine, " \t" );  /* get index of first non-space character */
@@ -94,7 +97,7 @@ long  convertOptionStringToLong( long  defltValue, char *  strng )  {
 }
 
 
-int  getNumberResponseFromUser( char *  questionString, int  defaultResult, int loLimit, int  hiLimit )  {
+int  getNumberResponseFromPlayer( char *  questionString, int  defaultResult, int loLimit, int  hiLimit )  {
     int  result = defaultResult;    /* default to No response */
     long  numberResponse;
     char *  enteredLineChrPtr;
@@ -103,9 +106,8 @@ int  getNumberResponseFromUser( char *  questionString, int  defaultResult, int 
 
     do  {
         printf( "%s within range from %d to %d (defaults to %d)? : ", questionString, loLimit, hiLimit, defaultResult );
-        if(( linelen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )  {
-            return( defaultResult );    /* unrecoverable condition - but finish up nicely as well as quickly */
-        }
+        if(( linelen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )
+            exit( EXIT_FAILURE );    /* unrecoverable condition - but finish up nicely as well as quickly */
         else  {
             startIndexOfFirstNonSpaceChar = strspn( playerEnteredLine, " \t" );
             enteredLineChrPtr = playerEnteredLine + startIndexOfFirstNonSpaceChar;
@@ -141,19 +143,19 @@ void  setupValidCodeLetters( int  nmbrOfCodes )  {
 
 
 void  changeGameSettings( void )  {
-    numberOfCodeSymbols = getNumberResponseFromUser( "How many letters to choose from",
+    numberOfCodeSymbols = getNumberResponseFromPlayer( "How many letters to choose from",
         DEFAULT_NUMBER_OF_CODE_SYMBOLS, MINIMUM_NUMBER_OF_CODE_SYMBOLS, MAXIMUM_NUMBER_OF_CODE_SYMBOLS );
     printf( "%d code letters in use & they are: ", numberOfCodeSymbols );
     setupValidCodeLetters( numberOfCodeSymbols );
     printf( "%s\n", validCodeLetters );
-    codeWidth = getNumberResponseFromUser( "How many letters to guess",
+    codeWidth = getNumberResponseFromPlayer( "How many letters to guess",
         MINIMUM_CODE_LENGTH, MINIMUM_CODE_LENGTH, MAXIMUM_CODE_LENGTH );
     printf( "The code will be %d letters long\n", codeWidth );
-    totalNumberOfGuesses = getNumberResponseFromUser( "How many guesses",
+    totalNumberOfGuesses = getNumberResponseFromPlayer( "How many guesses",
         MINIMUM_NUMBER_OF_GUESSES, MINIMUM_NUMBER_OF_GUESSES, MAXIMUM_NUMBER_OF_GUESSES );
     printf( "%d attempts to guess the code are avaiable\n", totalNumberOfGuesses );
     if( codeWidth <= numberOfCodeSymbols )
-        codeLettersCanBeRepeated = getYesOrNoResponseFromUser( "Are repeated code letters allowed in the code?", TRUE );
+        codeLettersCanBeRepeated = getYesOrNoResponseFromPlayer( "Are repeated code letters allowed in the code?", TRUE );
 }
 
 
@@ -213,10 +215,8 @@ void  getGuessForRound( int  roundNumber, char *  playerCodeGuess )  {
         *playerCodeGssChrPtr = '\0';  /* ensure that if getline() fails playerCodeGuess is a terminated string */
         printf( "Round number %d: Please enter %d letters from the set \"%s\": ",
             roundNumber, codeWidth, validCodeLetters );
-        if( getline( &playerEnteredLine, &linecap, stdin ) == -1 )  {
-            strcpy( playerCodeGuess, "AAAAAAAAAA" );    /* unrecoverable condition - but finish up nicely as well as quickly */
-            printf( "\n" );
-        }
+        if( getline( &playerEnteredLine, &linecap, stdin ) == -1 )
+            exit( EXIT_FAILURE );    /* unrecoverable condition - but finish up nicely as well as quickly */
         else  {
             enteredLineChrPtr = playerEnteredLine + strspn( playerEnteredLine, " \t" );  /* point at first non-white-space */
             for( ; *enteredLineChrPtr != '\0'; )  {   /* Loop to convert to upper case and copy if in the legal set of char */
@@ -307,28 +307,41 @@ int  playGame( void )  {
 }
 
 
+void  finishByPrintingScore( void )  {
+    /* Finish up */
+    if( feof( stdin ))  printf( "\n" );     /* Add blank line if player pressed ^D (EOF)*/
+    printf( "\nThank you for playing Mastermind\n" );
+    printf( "You played %d game%sand were successful on %d occasion%s\n\n",
+        totalGamesPlayed, ( totalGamesPlayed == 1 ) ? " " : "s ",
+        playerSuccesses, ( playerSuccesses == 1 ) ? "." : "s." );
+}
+
+
+void  finishUpAfterPlayerInterrupt( int  signalNumber )  {
+    printf( "\n" );         /* Add blank line if player pressed ^C, ^\ etc */
+    exit( EXIT_FAILURE );
+}
+
+
 void initializeGlobals( void )  {
     setupValidCodeLetters( numberOfCodeSymbols );
 }
 
 
 int  main( int  argc, char *  argv[] )  {
-    int  userSuccesses = 0;
-    int  totalGamesPlayed = 0;
-
     initializeGlobals();
+    atexit( finishByPrintingScore );    /* print out of score at exit time */
+	signal( SIGINT, finishUpAfterPlayerInterrupt );     /* Trap Interrupt (Control C) player interrupt */
+	signal( SIGQUIT, finishUpAfterPlayerInterrupt );    /* Trap Quit (Control \) player interrupt to print like linux */
+	signal( SIGTERM, finishUpAfterPlayerInterrupt );	/* Trap Terminate (Del) player interrupt */
     printf( "\nHello, Welcome to the game of Mastermind\nThis version of the game uses letter codes instead of colours.\n" );
     do  {
         printCurrentGameSettings();
-        if( getYesOrNoResponseFromUser( "\nDo you wish to change the Game settings?", FALSE ))
+        if( getYesOrNoResponseFromPlayer( "\nDo you wish to change the Game settings?", FALSE ))
             changeGameSettings();
-        userSuccesses += playGame();
+        playerSuccesses += playGame();
         totalGamesPlayed += 1;
-    }  while( getYesOrNoResponseFromUser( "\nDo you wish to play again?", TRUE ));
-    /* Finish up */
-    printf( "\nThank you for playing Mastermind\n" );
-    printf( "You played %d game%sand were succesful on %d occasion%s\n",
-        totalGamesPlayed, ( totalGamesPlayed == 1 ) ? " " : "s ",
-        userSuccesses, ( userSuccesses == 1 ) ? "." : "s." );
+    }  while(( ! feof( stdin )) && getYesOrNoResponseFromPlayer( "\nDo you wish to play again?", TRUE ));
+    /* finish up with printed score (N.B. atexit() put finishByPrintingScore() in the exit path */
     return( 0 );
 }
