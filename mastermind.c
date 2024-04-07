@@ -50,7 +50,7 @@ int  codeWidth = MINIMUM_CODE_LENGTH;
 int  totalNumberOfGuesses = MINIMUM_NUMBER_OF_GUESSES;
 int  codeLettersCanBeRepeated = TRUE;
 char  validCodeLetters[ MAXIMUM_NUMBER_OF_CODE_SYMBOLS + 1 ];      /* Array of allowed code letters in current guess + '\0' */
-char *  playerEnteredLine= NULL;      /* For use by getline() */
+char *  playerEnteredLine = NULL;       /* For use by getline() */
 size_t linecap = 0;
 char  resultSeparatorStrng[] = "  |  ";     /* separates guess from score when result for round is printed */
 
@@ -58,24 +58,24 @@ char  resultSeparatorStrng[] = "  |  ";     /* separates guess from score when r
 int  getYesOrNoResponseFromPlayer( char *  questionString, int  defaultResult )  {
     int  result = defaultResult;    /* default to No response */
     char *  enteredLineChrPtr;
-    ssize_t linelen;
+    ssize_t lineLen;
     size_t  startIndexOfFirstNonSpaceChar;
 
     do  {
         printf( "%s: yes or no (defaults to %s) : ", questionString, defaultResult ? "yes" : "no" );
-        if(( linelen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )  {
+        if(( lineLen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )  {
             exit( EXIT_FAILURE );    /* unrecoverable condition - but finish up nicely as well as quickly */
         }
         else  {
             startIndexOfFirstNonSpaceChar = strspn( playerEnteredLine, " \t" );  /* get index of first non-space character */
             enteredLineChrPtr = playerEnteredLine + startIndexOfFirstNonSpaceChar;
-            if( *enteredLineChrPtr == '\0' )  linelen = 0;     /* playerEnteredLine contains no response - shouldn't happen */
+            if( *enteredLineChrPtr == '\0' )  lineLen = 0;     /* playerEnteredLine contains no response - shouldn't happen */
             else if( *enteredLineChrPtr == '\n' )  result = defaultResult;     /* player only typed return, no letters */
             else if( tolower( *enteredLineChrPtr ) == 'y' )  result = TRUE;    /* starts with a 'y' so assume it is yes */
             else if( tolower( *enteredLineChrPtr ) == 'n' )  result = FALSE;   /* starts with a 'n' so assume it is no */
             else  result = defaultResult;
         }
-    } while( linelen <= 0 );
+    } while( lineLen <= 0 );
     return( result );
 }
 
@@ -101,17 +101,17 @@ int  getNumberResponseFromPlayer( char *  questionString, int  defaultResult, in
     int  result = defaultResult;    /* default to No response */
     long  numberResponse;
     char *  enteredLineChrPtr;
-    ssize_t linelen;
+    ssize_t lineLen;
     size_t  startIndexOfFirstNonSpaceChar;
 
     do  {
         printf( "%s within range from %d to %d (defaults to %d)? : ", questionString, loLimit, hiLimit, defaultResult );
-        if(( linelen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )
+        if(( lineLen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )
             exit( EXIT_FAILURE );    /* unrecoverable condition - but finish up nicely as well as quickly */
         else  {
             startIndexOfFirstNonSpaceChar = strspn( playerEnteredLine, " \t" );
             enteredLineChrPtr = playerEnteredLine + startIndexOfFirstNonSpaceChar;
-            if( *enteredLineChrPtr == '\0' )  linelen = 0; /* playerEnteredLinehas no response */
+            if( *enteredLineChrPtr == '\0' )  lineLen = 0; /* playerEnteredLine has no response */
             else if( *enteredLineChrPtr == '\n' )  result = defaultResult;
             else {
                 numberResponse = convertOptionStringToLong( (long) defaultResult, enteredLineChrPtr );
@@ -119,7 +119,7 @@ int  getNumberResponseFromPlayer( char *  questionString, int  defaultResult, in
                 result = ( int ) numberResponse;
             }
         }
-    } while( linelen <= 0 );
+    } while( lineLen <= 0 );
     return( result );
 }
 
@@ -323,7 +323,7 @@ void  finishUpAfterPlayerInterrupt( int  signalNumber )  {
 }
 
 
-void initializeGlobals( void )  {
+void  initializeGlobals( void )  {
     setupValidCodeLetters( numberOfCodeSymbols );
 }
 
