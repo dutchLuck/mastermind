@@ -314,6 +314,11 @@ void  finishByPrintingScore( void )  {
     printf( "You played %d game%sand were successful on %d occasion%s\n\n",
         totalGamesPlayed, ( totalGamesPlayed == 1 ) ? " " : "s ",
         playerSuccesses, ( playerSuccesses == 1 ) ? "." : "s." );
+    /* Free the storage used by getline() */
+    if( playerEnteredLine != NULL )  {
+        free( playerEnteredLine );
+        linecap = 0;
+    }
 }
 
 
