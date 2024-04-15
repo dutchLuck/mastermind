@@ -24,7 +24,7 @@
 #include <stdio.h>  /* printf() getline() feof() */
 #include <string.h> /* strspn() strlen() strchr() strcmp() strncpy() */
 #include <ctype.h>  /* tolower() */
-#include <stdlib.h> /* random() srandom() strtol() atexit() exit() */
+#include <stdlib.h> /* rand() srand() strtol() atexit() exit() */
 #include <time.h>   /* clock_gettime() */
 #include <signal.h>		/* signal() */
 
@@ -41,7 +41,6 @@
 #define MAXIMUM_CODE_LENGTH 10
 #define MINIMUM_NUMBER_OF_GUESSES 7
 #define MAXIMUM_NUMBER_OF_GUESSES 20
-#define LARGEST_PRNUMBER  ((long) 2147483647)    /* (2^31)-1 is max output by random() */
 
 int  playerSuccesses = 0;     /* games won by the player */
 int  totalGamesPlayed = 0;
@@ -163,9 +162,9 @@ void  generateSecretCodeAllowingRepeatedSymbols( char  secretCode[] )  {
     int  index;
     long  prDivisor;
 
-    prDivisor = ( LARGEST_PRNUMBER / ( long ) numberOfCodeSymbols );    /* Calc Pseudo Random divisor for later use */
+    prDivisor = ( ((long) RAND_MAX) / ( long ) numberOfCodeSymbols );    /* Calc Pseudo Random divisor for later use */
     for( index = 0; index < codeWidth; index++ )
-        secretCode[ index ] = 'A' + ( int )( random() / prDivisor );
+        secretCode[ index ] = 'A' + ( int )( rand() / prDivisor );
 }
 
 
@@ -181,8 +180,8 @@ void  generateSecretCodeSansRepeatedSymbols( char *  secretCodePtr )  {
     /* Work through the available letters randomly selecting, copying and then removing each choice */
     for( index = 0, lettersLeft = numberOfCodeSymbols; index < codeWidth; index++ )  {
         if( lettersLeft > 1 )  {
-            prDivisor = ( LARGEST_PRNUMBER / ( long ) lettersLeft-- );
-            avlPtr = availableCodes + ( int )( random() / prDivisor );      /* point at the selected letter */
+            prDivisor = ( ((long) RAND_MAX) / ( long ) lettersLeft-- );
+            avlPtr = availableCodes + ( int )( rand() / prDivisor );      /* point at the selected letter */
         }
         else  avlPtr = availableCodes;      /* Only 1 letter left */
         *secretCodePtr++ = *avlPtr;         /* write available letter into secret code string */
@@ -192,13 +191,6 @@ void  generateSecretCodeSansRepeatedSymbols( char *  secretCodePtr )  {
 
 
 void  generateSecretCode( char *  secretCode )  {
-    unsigned  seed;
-    struct timespec  now;
-
-    if( clock_gettime( CLOCK_REALTIME, &now ) < 0 )
-        seed = ( unsigned ) 0x55AA00FF;     /* perhaps better than 0 if get time fails ? */
-    else  seed = ( unsigned )( now.tv_sec ^ now.tv_nsec );  /* Exclusive or */
-    srandom( seed );
     if( codeLettersCanBeRepeated || ( codeWidth > numberOfCodeSymbols ))
         generateSecretCodeAllowingRepeatedSymbols( secretCode );
     else  generateSecretCodeSansRepeatedSymbols( secretCode );
@@ -329,7 +321,14 @@ void  finishUpAfterPlayerInterrupt( int  signalNumber )  {
 
 
 void  initializeGlobals( void )  {
+    unsigned  seed;
+    struct timespec  now;
+
     setupValidCodeLetters( numberOfCodeSymbols );
+    if( clock_gettime( CLOCK_REALTIME, &now ) < 0 )
+        seed = ( unsigned ) 0x55AA00FF;     /* perhaps better than 0 if get time fails ? */
+    else  seed = ( unsigned )( now.tv_sec ^ now.tv_nsec );  /* Exclusive or */
+    srand( seed );  /* initialize the pseudo-random number generator */
 }
 
 
