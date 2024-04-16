@@ -2,7 +2,7 @@
 #
 # C O N F I G U R E
 #
-# configure last edited on Thu Dec 28 19:57:07 2023 
+# configure last edited on Tue Apr 16 13:10:55 2024 
 #
 NAME=mastermind
 #
@@ -11,6 +11,7 @@ COMPILER=cc
 OPTIONS="-Wall -pedantic"
 TRGT=$NAME
 SRC=$NAME.c
+LNK_OPTIONS=""
 #
 # echo $OSTYPE
 #
@@ -19,10 +20,11 @@ if [[ "$OSTYPE" == "cygwin" ]] ; then
 elif [[ "$OSTYPE" == "msys" ]] ; then
   TRGT=$NAME.exe
   COMPILER=gcc
+  LNK_OPTIONS="-static"
 fi
 #
 echo "$TRGT: $SRC" > $OP_FILE_NAME
-echo -e "\t$COMPILER $OPTIONS -o $TRGT $SRC" >> $OP_FILE_NAME
+echo -e "\t$COMPILER $OPTIONS -o $TRGT $SRC $LNK_OPTIONS" >> $OP_FILE_NAME
 echo "" >> $OP_FILE_NAME
 #
 echo "check: $TRGT" >> $OP_FILE_NAME
@@ -31,5 +33,9 @@ echo "" >> $OP_FILE_NAME
 #
 echo "clean:" >> $OP_FILE_NAME
 echo -e "\trm -f $TRGT $NAME.o" >> $OP_FILE_NAME
+echo "" >> $OP_FILE_NAME
+#
+echo "debug: clean" >> $OP_FILE_NAME
+echo -e "\t$COMPILER $OPTIONS -DDEBUG -g -o $TRGT $SRC $LNK_OPTIONS" >> $OP_FILE_NAME
 echo "" >> $OP_FILE_NAME
 #

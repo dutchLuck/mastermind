@@ -2,6 +2,8 @@
  * M A S T E R M I N D . C
  *
  * C language code to play text mode mastermind
+ *
+ * mastermind.c last edited on Tue Apr 16 21:45:57 2024 
  * 
  */
 
@@ -41,6 +43,7 @@
 #define MAXIMUM_CODE_LENGTH 10
 #define MINIMUM_NUMBER_OF_GUESSES 7
 #define MAXIMUM_NUMBER_OF_GUESSES 20
+#define GET_LINE_MALLOC_SZ 16
 
 int  playerSuccesses = 0;     /* games won by the player */
 int  totalGamesPlayed = 0;
@@ -49,9 +52,40 @@ int  codeWidth = MINIMUM_CODE_LENGTH;
 int  totalNumberOfGuesses = MINIMUM_NUMBER_OF_GUESSES;
 int  codeLettersCanBeRepeated = TRUE;
 char  validCodeLetters[ MAXIMUM_NUMBER_OF_CODE_SYMBOLS + 1 ];      /* Array of allowed code letters in current guess + '\0' */
-char *  playerEnteredLine = NULL;       /* For use by getline() */
+char *  playerEnteredLine = NULL;       /* For use by getLine() */
 size_t linecap = 0;
 char  resultSeparatorStrng[] = "  |  ";     /* separates guess from score when result for round is printed */
+
+
+int  getLine( char **  linePtr, size_t *  lineSize, FILE *  fp )  {
+    char *  chrPtr;
+    size_t  chrCnt = 0;
+    int  chr;
+
+    if( *linePtr == NULL ) {
+        if(( *linePtr = malloc( GET_LINE_MALLOC_SZ )) == NULL )  return( -1 );  /* Cannot recover */
+        *lineSize = GET_LINE_MALLOC_SZ;
+#ifdef DEBUG
+        printf( "\nDEBUG: After malloc() Line buffer size is now %ld\n", *lineSize );
+#endif
+    }
+    chrPtr = *linePtr;
+    do {
+        if(( chr = fgetc( fp )) == EOF )  return( -1 );
+        else {
+            if( ++chrCnt >= *lineSize ) {
+                if(( *linePtr = realloc( *linePtr, *lineSize + GET_LINE_MALLOC_SZ )) == NULL )  return( -1 );  /* Cannot recover */
+                *lineSize += GET_LINE_MALLOC_SZ;
+#ifdef DEBUG
+                printf( "\nDEBUG: After realloc() Line buffer size is now %ld\n", *lineSize );
+#endif
+            }
+            *chrPtr++ = ( char ) chr;
+            *chrPtr = '\0';
+        }
+    } while( chr != '\n' );
+    return( chrCnt );
+}
 
 
 int  getYesOrNoResponseFromPlayer( char *  questionString, int  defaultResult )  {
@@ -62,7 +96,7 @@ int  getYesOrNoResponseFromPlayer( char *  questionString, int  defaultResult ) 
 
     do  {
         printf( "%s: yes or no (defaults to %s) : ", questionString, defaultResult ? "yes" : "no" );
-        if(( lineLen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )  {
+        if(( lineLen = getLine( &playerEnteredLine, &linecap, stdin )) == -1 )  {
             exit( EXIT_FAILURE );    /* unrecoverable condition - but finish up nicely as well as quickly */
         }
         else  {
@@ -105,7 +139,7 @@ int  getNumberResponseFromPlayer( char *  questionString, int  defaultResult, in
 
     do  {
         printf( "%s within range from %d to %d (defaults to %d)? : ", questionString, loLimit, hiLimit, defaultResult );
-        if(( lineLen = getline( &playerEnteredLine, &linecap, stdin )) == -1 )
+        if(( lineLen = getLine( &playerEnteredLine, &linecap, stdin )) == -1 )
             exit( EXIT_FAILURE );    /* unrecoverable condition - but finish up nicely as well as quickly */
         else  {
             startIndexOfFirstNonSpaceChar = strspn( playerEnteredLine, " \t" );
@@ -162,7 +196,7 @@ void  generateSecretCodeAllowingRepeatedSymbols( char  secretCode[] )  {
     int  index;
     long  prDivisor;
 
-    prDivisor = ( ((long) RAND_MAX) / ( long ) numberOfCodeSymbols );    /* Calc Pseudo Random divisor for later use */
+    prDivisor = ((long) RAND_MAX) / ( long ) numberOfCodeSymbols;    /* Calc Pseudo Random divisor for later use */
     for( index = 0; index < codeWidth; index++ )
         secretCode[ index ] = 'A' + ( int )( rand() / prDivisor );
 }
@@ -180,7 +214,7 @@ void  generateSecretCodeSansRepeatedSymbols( char *  secretCodePtr )  {
     /* Work through the available letters randomly selecting, copying and then removing each choice */
     for( index = 0, lettersLeft = numberOfCodeSymbols; index < codeWidth; index++ )  {
         if( lettersLeft > 1 )  {
-            prDivisor = ( ((long) RAND_MAX) / ( long ) lettersLeft-- );
+            prDivisor = ((long) RAND_MAX) / ( long ) lettersLeft--;
             avlPtr = availableCodes + ( int )( rand() / prDivisor );      /* point at the selected letter */
         }
         else  avlPtr = availableCodes;      /* Only 1 letter left */
@@ -204,10 +238,10 @@ void  getGuessForRound( int  roundNumber, char *  playerCodeGuess )  {
 
     do  {
         playerCodeGssChrPtr = playerCodeGuess;
-        *playerCodeGssChrPtr = '\0';  /* ensure that if getline() fails playerCodeGuess is a terminated string */
+        *playerCodeGssChrPtr = '\0';  /* ensure that if getLine() fails playerCodeGuess is a terminated string */
         printf( "Round number %d: Please enter %d letters from the set \"%s\": ",
             roundNumber, codeWidth, validCodeLetters );
-        if( getline( &playerEnteredLine, &linecap, stdin ) == -1 )
+        if( getLine( &playerEnteredLine, &linecap, stdin ) == -1 )
             exit( EXIT_FAILURE );    /* unrecoverable condition - but finish up nicely as well as quickly */
         else  {
             enteredLineChrPtr = playerEnteredLine + strspn( playerEnteredLine, " \t" );  /* point at first non-white-space */
@@ -306,7 +340,7 @@ void  finishByPrintingScore( void )  {
     printf( "You played %d game%sand were successful on %d occasion%s\n\n",
         totalGamesPlayed, ( totalGamesPlayed == 1 ) ? " " : "s ",
         playerSuccesses, ( playerSuccesses == 1 ) ? "." : "s." );
-    /* Free the storage used by getline() */
+    /* Free the storage used by getLine() */
     if( playerEnteredLine != NULL )  {
         free( playerEnteredLine );
         linecap = 0;
@@ -336,8 +370,12 @@ int  main( int  argc, char *  argv[] )  {
     initializeGlobals();
     atexit( finishByPrintingScore );    /* print out of score at exit time */
 	signal( SIGINT, finishUpAfterPlayerInterrupt );     /* Trap Interrupt (Control C) player interrupt */
+#ifdef  SIGQUIT
 	signal( SIGQUIT, finishUpAfterPlayerInterrupt );    /* Trap Quit (Control \) player interrupt to print like linux */
+#endif
+#ifdef SIGTERM
 	signal( SIGTERM, finishUpAfterPlayerInterrupt );	/* Trap Terminate (Del) player interrupt */
+#endif
     printf( "\nHello, Welcome to the game of Mastermind\nThis version of the game uses letter codes instead of colours.\n" );
     do  {
         printCurrentGameSettings();
