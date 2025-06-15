@@ -2,13 +2,13 @@
 #
 # C O N F I G U R E
 #
-# configure last edited on Tue Apr 16 13:10:55 2024 
+# configure last edited on Sun Jun 15 22:05:31 2025 
 #
 NAME=mastermind
 #
 OP_FILE_NAME=Makefile
 COMPILER=cc
-OPTIONS="-Wall -pedantic"
+OPTIONS="-Wall -pedantic -Wextra"
 TRGT=$NAME
 SRC=$NAME.c
 LNK_OPTIONS=""

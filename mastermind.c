@@ -3,7 +3,7 @@
  *
  * C language code to play text mode mastermind
  *
- * mastermind.c last edited on Tue Apr 16 21:45:57 2024 
+ * mastermind.c last edited on Sun Jun 15 22:05:43 2025 
  * 
  */
 
@@ -252,7 +252,7 @@ void  getGuessForRound( int  roundNumber, char *  playerCodeGuess )  {
             }
             *playerCodeGssChrPtr = '\0';  /* ensure playerCodeGuess is a terminated string so strlen() works */
         }
-    } while( strlen( playerCodeGuess ) < codeWidth );     /* loop if there is not input from the player */
+    } while( strlen( playerCodeGuess ) < (size_t) codeWidth );     /* loop if there is not input from the player */
     playerCodeGuess[ codeWidth ] = '\0';     /* Ensure code guess is expected width in case player has entered too many letters */
 }
 
@@ -285,7 +285,7 @@ int  scoreMisplacedLetters( int scoreIndex, char *  score, char *  uCode, char *
 }
 
 
-void  determineScore( int  round, char *  secretCode, char *  userCodeGuess, char *  score )  {
+void  determineScore( char *  secretCode, char *  userCodeGuess, char *  score )  {
     int  index, correctGuesses;
     char  tempUserCodeGuess[ MAXIMUM_CODE_LENGTH + 1 ];     /* Array of code letters in current guess + '\0' */
     char  tempSecretCode[ MAXIMUM_CODE_LENGTH + 1 ];        /* Array of code letters in current guess + '\0' */
@@ -320,7 +320,7 @@ int  playGame( void )  {
             break;
         }
         else  {
-            determineScore( roundCnt, secretCode, userCodeGuess[ roundCnt ], score[ roundCnt ] );
+            determineScore( secretCode, userCodeGuess[ roundCnt ], score[ roundCnt ] );
             for( cnt = 1; cnt <= roundCnt; cnt++ )
                 printf( "%2d.  %s%s%s\n", cnt, userCodeGuess[ cnt ], resultSeparatorStrng, score[ cnt ] );
             if( roundCnt >= totalNumberOfGuesses )  {
@@ -349,7 +349,7 @@ void  finishByPrintingScore( void )  {
 
 
 void  finishUpAfterPlayerInterrupt( int  signalNumber )  {
-    printf( "\n" );         /* Add blank line if player pressed ^C, ^\ etc */
+    printf( "\nFinish due to interrupt (signal %d)", signalNumber );         /* Add blank line if player pressed ^C, ^\ etc */
     exit( EXIT_FAILURE );
 }
 
@@ -366,7 +366,7 @@ void  initializeGlobals( void )  {
 }
 
 
-int  main( int  argc, char *  argv[] )  {
+int  main( void )  {
     initializeGlobals();
     atexit( finishByPrintingScore );    /* print out of score at exit time */
 	signal( SIGINT, finishUpAfterPlayerInterrupt );     /* Trap Interrupt (Control C) player interrupt */
